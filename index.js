@@ -65,6 +65,13 @@ function getRandomSwapAmount() {
   return roundedAmount;
 }
 
+// ⬇️ HÀM MỚI: Tạo độ trễ ngẫu nhiên từ 30000ms (30s) đến 60000ms (60s)
+function getRandomDelay() {
+  const minMs = 30000; // 30 giây
+  const maxMs = 60000; // 60 giây
+  return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+}
+
 
 let proxyList = [];
 try {
@@ -178,7 +185,8 @@ async function robustFetchDodoRoute(url) {
     }
 
     attempt++;
-    await new Promise(r => setTimeout(r, 2000));
+    // Độ trễ 2 giây khi gặp lỗi DODO API vẫn giữ nguyên
+    await new Promise(r => setTimeout(r, 2000)); 
   }
 }
 
@@ -223,12 +231,14 @@ async function executeSwap(wallet, routeData, fromAddr, amount, retryCount = 0) 
       const newProxy = getNextProxy();
       logger.warn(`Rotating proxy and retrying swap ${retryCount + 1}/10`);
       wallet.provider = getProviderWithProxy(newProxy);
+      // Độ trễ 2 giây khi đổi proxy vẫn giữ nguyên
       await new Promise(r => setTimeout(r, 2000));
       return executeSwap(wallet, routeData, fromAddr, amount, retryCount + 1);
     }
 
     if (retryCount < 10) { 
       logger.retry(`Retrying swap ${retryCount + 1}/10`);
+      // Độ trễ 2 giây khi thử lại vẫn giữ nguyên
       await new Promise(r => setTimeout(r, 2000));
       return executeSwap(wallet, routeData, fromAddr, amount, retryCount + 1);
     }
@@ -271,6 +281,7 @@ async function batchSwap(wallet, count) {
         logger.error(`Swap ${i + 1} attempt ${swapAttempt} failed: ${e.message}`);
         
         if (swapAttempt < maxSwapAttempts) {
+          // Độ trễ 3 giây khi cố gắng thử lại sau khi thất bại vẫn giữ nguyên
           logger.retry(`Fetching fresh API data and retrying in 3 seconds...`);
           await new Promise(r => setTimeout(r, 3000));
         } else {
@@ -281,7 +292,8 @@ async function batchSwap(wallet, count) {
 
     
     if (i < count - 1) {
-      const waitTime = 2000;
+      // ⬇️ THAY ĐỔI: Độ trễ ngẫu nhiên giữa các lần swap của cùng một ví
+      const waitTime = getRandomDelay();
       logger.debug(`Waiting ${waitTime/1000} seconds before next swap...`);
       await new Promise(r => setTimeout(r, waitTime));
     }
@@ -333,7 +345,8 @@ const ask = q => new Promise(r => rl.question(q, r));
     
     
     if (i < privateKeys.length - 1) {
-      const waitTime = 5000;
+      // ⬇️ THAY ĐỔI: Độ trễ ngẫu nhiên giữa các ví
+      const waitTime = getRandomDelay();
       logger.info(`Waiting ${waitTime/1000} seconds before next wallet...`);
       await new Promise(r => setTimeout(r, waitTime));
     }
